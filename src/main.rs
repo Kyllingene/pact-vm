@@ -1,4 +1,4 @@
-use rim::read_file;
+use pact::read_file;
 use sarge::prelude::*;
 
 fn main() {

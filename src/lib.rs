@@ -3,6 +3,7 @@ use std::fmt::Debug;
 
 pub mod error;
 pub mod helper;
+pub mod prelude;
 
 use error::{RimResult, RimError};
 use helper::{U3, U4};
@@ -285,7 +286,16 @@ impl Debug for Rim {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Instruction(Opcode, InstructionData);
+pub struct Instruction(pub Opcode, pub InstructionData);
+
+impl From<Instruction> for u8 {
+    fn from(instruction: Instruction) -> Self {
+        let opcode = instruction.0 as u8;
+        let data: u8 = instruction.1.into();
+
+        opcode | data
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -411,6 +421,36 @@ impl InstructionData {
         } else {
             panic!("Tried to call as_io on non-Io InstructionData")
         }
+    }
+}
+
+impl From<InstructionData> for u8 {
+    fn from(data: InstructionData) -> Self {
+        let mut byte = 0;
+        match data {
+            InstructionData::Imm(imm) => byte |= imm << 3,
+            InstructionData::Reg { is_id, src, dest } => {
+                if is_id {
+                    byte |= 1 << 3;
+                }
+
+                byte |= (src as u8) << 4;
+                byte |= (dest as u8) << 6;
+            }
+            InstructionData::Mem { is_ptr, addr } => {
+                if is_ptr {
+                    byte |= 1 << 3;
+                }
+
+                byte |= (addr as u8) << 4;
+            }
+            InstructionData::Io { device, function } => {
+                byte |= (device as u8) << 3;
+                byte |= (function as u8) << 5;
+            }
+        }
+
+        byte
     }
 }
 
